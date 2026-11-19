@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://applyops.dev/schemas/profile/profile.schema.json",
+  "title": "Verified career profile",
+  "description": "The ONLY factual source the résumé tailor may use (ADR-0004). Every citable item has a stable id.",
+  "type": "object",
+  "required": ["version", "contact", "work_authorization", "experience", "skills"],
+  "additionalProperties": false,
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "yearMonth": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+    "bullet": {
+      "type": "object",
+      "required": ["id", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "text": { "type": "string", "minLength": 1 },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "metrics": {
+          "type": "object",
+          "description": "Verified numbers the tailor may cite, e.g. {latency_reduction_pct: 40}.",
+          "additionalProperties": { "type": ["number", "string"] }
+        }
+      }
+    }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "contact": {
+      "type": "object",
+      "required": ["name", "email"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "url"],
+            "additionalProperties": false,
+            "properties": { "label": { "type": "string" }, "url": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "work_authorization": {
+      "type": "object",
+      "required": ["country", "needs_sponsorship"],
+      "additionalProperties": false,
+      "properties": {
+        "country": { "type": "string" },
+        "status": { "type": "string" },
+        "needs_sponsorship": { "type": "boolean" }
+      }
+    },
+    "summary": { "type": "string" },
+    "experience": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "company", "title", "start", "bullets"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "company": { "type": "string" },
+          "title": { "type": "string" },
+          "location": { "type": "string" },
+          "start": { "$ref": "#/$defs/yearMonth" },
+          "end": { "oneOf": [{ "$ref": "#/$defs/yearMonth" }, { "const": "present" }] },
+          "bullets": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/bullet" } }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "bullets"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "bullets": { "type": "array", "items": { "$ref": "#/$defs/bullet" } }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "institution", "degree"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "institution": { "type": "string" },
+          "degree": { "type": "string" },
+          "field": { "type": "string" },
+          "end": { "$ref": "#/$defs/yearMonth" }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "name": { "type": "string" },
+          "category": { "type": "string" }
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_salary": { "type": "number" },
+        "remote": { "enum": ["remote_only", "hybrid_ok", "onsite_ok"] },
+        "locations": { "type": "array", "items": { "type": "string" } },
+        "exclude_companies": { "type": "array", "items": { "type": "string" } },
+        "match_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "standard_answers": {
+      "type": "object",
+      "description": "Pre-approved answers to common application questions.",
+      "additionalProperties": { "type": ["string", "boolean", "number"] }
+    }
+  }
+}

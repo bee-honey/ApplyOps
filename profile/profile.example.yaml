@@ -1,0 +1,67 @@
+# Example verified career profile. Copy to profile/profile.yaml (gitignored) and fill in real data.
+# Every bullet needs a stable id: the résumé tailor cites these ids, and anything it can't cite is removed.
+version: 1
+contact:
+  name: Alex Example
+  email: alex@example.com
+  location: San Francisco, CA
+  links:
+    - { label: GitHub, url: "https://github.com/example" }
+work_authorization:
+  country: US
+  status: citizen
+  needs_sponsorship: false
+summary: Backend engineer focused on workflow orchestration and distributed systems.
+experience:
+  - id: acme-senior
+    company: Acme Corp
+    title: Senior Software Engineer
+    start: 2022-03
+    end: present
+    bullets:
+      - id: acme-senior-workflows
+        text: Built a workflow orchestration service coordinating human approvals across 12 integrations.
+        skills: [java, spring-boot, kestra, postgresql]
+        metrics: { integrations: 12 }
+      - id: acme-senior-latency
+        text: Cut p99 API latency by 40% by redesigning the caching layer.
+        skills: [java, redis]
+        metrics: { latency_reduction_pct: 40 }
+  - id: initech-swe
+    company: Initech
+    title: Software Engineer
+    start: 2019-06
+    end: 2022-02
+    bullets:
+      - id: initech-swe-iam
+        text: Implemented SSO and role-based access control for an internal identity platform.
+        skills: [java, oauth2, keycloak]
+projects:
+  - id: applyops
+    name: ApplyOps
+    url: "https://github.com/example/applyops"
+    bullets:
+      - id: applyops-temporal
+        text: Designed a human-in-the-loop job application platform on Temporal with Java and Python workers.
+        skills: [temporal, java, python, playwright]
+education:
+  - id: edu-bs
+    institution: Example University
+    degree: B.S.
+    field: Computer Science
+    end: 2019-05
+skills:
+  - { id: java, name: Java, category: language }
+  - { id: python, name: Python, category: language }
+  - { id: spring-boot, name: Spring Boot, category: framework }
+  - { id: temporal, name: Temporal, category: platform }
+  - { id: postgresql, name: PostgreSQL, category: database }
+preferences:
+  min_salary: 180000
+  remote: hybrid_ok
+  locations: [San Francisco Bay Area, Remote]
+  exclude_companies: []
+  match_threshold: 0.7
+standard_answers:
+  willing_to_relocate: false
+  notice_period: 2 weeks

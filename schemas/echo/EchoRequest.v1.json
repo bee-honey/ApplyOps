@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://applyops.dev/schemas/echo/EchoRequest.v1.json",
+  "title": "EchoRequest",
+  "description": "M0 polyglot smoke test: Java workflow -> Python activity input.",
+  "type": "object",
+  "properties": {
+    "message": { "type": "string", "minLength": 1 }
+  },
+  "required": ["message"],
+  "additionalProperties": false
+}

@@ -19,7 +19,7 @@ Each milestone delivers something demoable that you can use yourself. Milestones
 - Monorepo layout (`orchestrator/`, `telegram-gateway/`, `agents/`, `browser-worker/`, `schemas/`, `profile/`, `infra/`, `evals/`)
 - `infra/docker-compose.yml`: Temporal (auto-setup) + Temporal UI + Postgres
 - Java: Gradle multi-module, Spring Boot 3, Temporal Java SDK, Flyway baseline migration
-- Python: `uv` project(s), Temporal Python SDK, Pydantic, ruff + pytest
+- Python: `pyproject.toml` project (venv + pip; uv-compatible), Temporal Python SDK, Pydantic, ruff + pytest
 - `schemas/` JSON Schemas + codegen/validation approach for both languages
 - `profile/profile.schema.json` + `profile.example.yaml`; real `profile.yaml` gitignored
 - Polyglot smoke test: `HelloWorkflow` (Java) → `echo` step on `agents-tq` (Python)

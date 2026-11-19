@@ -1,0 +1,80 @@
+name: applyops
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  temporal:
+    # Last published auto-setup image; creates schemas and the "default" namespace on boot.
+    image: temporalio/auto-setup:1.29.7
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: postgres
+    ports:
+      - "7233:7233"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.29.7-tctl-1.18.4-cli-1.7.2
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    entrypoint: ["tail", "-f", "/dev/null"]
+    depends_on:
+      - temporal
+
+  temporal-ui:
+    image: temporalio/ui:2.58.1
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - temporal
+
+  orchestrator:
+    build:
+      context: ..
+      dockerfile: orchestrator/Dockerfile
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      DB_HOST: postgres
+      DB_NAME: applyops
+      DB_USER: applyops
+      DB_PASSWORD: applyops
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    restart: on-failure
+
+  agents-worker:
+    build:
+      context: ../agents
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      - temporal
+    restart: on-failure
+
+volumes:
+  pgdata:

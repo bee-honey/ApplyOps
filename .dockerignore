@@ -1,0 +1,8 @@
+**/.gradle
+**/build
+**/.venv
+**/__pycache__
+.git
+data
+.env
+profile/profile.yaml

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://applyops.dev/schemas/echo/EchoResult.v1.json",
+  "title": "EchoResult",
+  "description": "M0 polyglot smoke test: Python activity -> Java workflow output.",
+  "type": "object",
+  "properties": {
+    "message": { "type": "string" },
+    "worker": { "type": "string", "description": "Hostname of the worker that handled the call." },
+    "language": { "type": "string", "enum": ["python", "java"] }
+  },
+  "required": ["message", "worker", "language"],
+  "additionalProperties": false
+}
