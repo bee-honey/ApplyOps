@@ -1,29 +1,37 @@
 package dev.applyops.orchestrator.discovery.parser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import dev.applyops.orchestrator.discovery.model.AlertEmail;
-import dev.applyops.orchestrator.testing.Fixtures;
 import dev.applyops.orchestrator.discovery.model.DiscoveredJob;
+import dev.applyops.orchestrator.testing.Fixtures;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+/** Pinned to a real (scrubbed) Jobright alert: company precedes the title; salary is optional. */
 class JobrightAlertParserTest {
 
     private final JobrightAlertParser parser = new JobrightAlertParser(List.of("jobright.ai"));
 
     @Test
-    void parsesJobsAndSkipsNonJobLinks() throws Exception {
-        var email = new AlertEmail("m9", "noreply@jobright.ai", "matches", 0, Fixtures.email("jobright-alert.synthetic.html"));
+    void parsesEveryCardAndSkipsSalaryWhenFindingLocation() throws Exception {
+        var email = new AlertEmail("m9", "noreply@jobright.ai", "matches", 0, Fixtures.email("jobright-alert.html"));
 
         List<DiscoveredJob> jobs = parser.parse(email);
 
-        assertThat(jobs).hasSize(2);
+        assertThat(jobs)
+                .extracting(DiscoveredJob::title, DiscoveredJob::company, DiscoveredJob::location)
+                .containsExactly(
+                        tuple("Senior Software Engineer, Backend - Infrastructure", "Rippling", "San Francisco, CA"),
+                        tuple("Senior Software Developer", "AHEAD", "Remote"),
+                        tuple("Software Engineer, Core AI/ML", "FloQast", "San Jose, CA"),
+                        tuple("Sr. Engineer, Cloud - CTIO (Hybrid)", "CrowdStrike", "Sunnyvale, CA"),
+                        tuple("Senior Software Engineer, Edge", "Metropolis Technologies", "Los Angeles, CA"),
+                        tuple("Software Engineer II, Backend - Platform Team", "Rippling", "San Francisco, CA"));
         assertThat(jobs.get(0)).isEqualTo(new DiscoveredJob(
-                "jobright", "66f1a2b3c4d5e6f7a8b9c0d1", "Senior Backend Engineer", "Acme Corp",
-                "San Francisco, CA", "https://jobright.ai/jobs/info/66f1a2b3c4d5e6f7a8b9c0d1", "m9"));
-        assertThat(jobs.get(1).company()).isEqualTo("Initech");
-        assertThat(jobs.get(1).location()).isEqualTo("Austin, TX");
+                "jobright", "6aff3279c1c02a9acd809c67", "Senior Software Engineer, Backend - Infrastructure",
+                "Rippling", "San Francisco, CA", "https://jobright.ai/jobs/info/6aff3279c1c02a9acd809c67", "m9"));
     }
 
     @Test

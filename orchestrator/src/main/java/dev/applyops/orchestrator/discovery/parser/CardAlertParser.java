@@ -22,9 +22,11 @@ import org.jsoup.select.NodeVisitor;
  *
  * <ol>
  *   <li>Every link whose href matches {@link #jobIdPattern()} belongs to that job id.
- *   <li>The longest link text that is not a call to action is the title.
+ *   <li>The title is the longest <em>innermost</em> job link that is not a call to action. Real
+ *       templates wrap the whole card in an outer link, so "longest link" alone picks the card.
  *   <li>The card is the largest ancestor of the title link that links to no other job.
- *   <li>Text after the title, split on " · ", gives company then location.
+ *   <li>The card's other text, split into fragments before and after the title, goes to
+ *       {@link #details} where each provider says where company and location sit.
  * </ol>
  *
  * <p>Email templates change; parsers are pinned by fixture tests built from real emails.
@@ -33,13 +35,27 @@ abstract class CardAlertParser implements AlertParser {
 
     private static final Set<String> CALLS_TO_ACTION = Set.of(
             "apply", "apply now", "easy apply", "view job", "view", "see job", "see more", "save", "learn more");
-    private static final Pattern SEPARATOR = Pattern.compile("\\s+[·•|]\\s+");
+    private static final Pattern SEPARATOR = Pattern.compile("\\s*[·•|]\\s+");
 
     /** Regex with one capture group: the provider's job id. */
     protected abstract Pattern jobIdPattern();
 
     /** Canonical URL for a job id (tracking parameters stripped). */
     protected abstract String canonicalUrl(String jobId, String rawHref);
+
+    /**
+     * Company and location from the card's text fragments (already split on " · ", calls to
+     * action removed). Default: "Title / Company · Location".
+     */
+    protected Details details(List<String> before, List<String> after) {
+        return new Details(at(after, 0), at(after, 1));
+    }
+
+    protected record Details(String company, String location) {}
+
+    protected static String at(List<String> list, int i) {
+        return i < list.size() ? list.get(i) : null;
+    }
 
     @Override
     public List<DiscoveredJob> parse(AlertEmail email) {
@@ -54,7 +70,7 @@ abstract class CardAlertParser implements AlertParser {
             }
             hrefs.putIfAbsent(id, a.attr("href"));
             String text = a.text().strip();
-            if (!isTitleCandidate(text)) {
+            if (!isTitleCandidate(text) || containsJobLink(a)) {
                 continue;
             }
             Element best = titleLinks.get(id);
@@ -68,14 +84,15 @@ abstract class CardAlertParser implements AlertParser {
             String id = e.getKey();
             Element titleLink = e.getValue();
             String title = titleLink.text().strip();
-            List<String> details = textsAfter(card(titleLink, id), titleLink);
-            String company = details.size() > 0 ? details.get(0) : null;
-            String location = details.size() > 1 ? details.get(1) : null;
-            if (company == null || company.isBlank()) {
+            List<String> before = new ArrayList<>();
+            List<String> after = new ArrayList<>();
+            fragments(card(titleLink, id), titleLink, before, after);
+            Details d = details(before, after);
+            if (d.company() == null || d.company().isBlank()) {
                 continue; // Not enough information to dedup reliably.
             }
             jobs.add(new DiscoveredJob(
-                    provider(), id, title, company, location, canonicalUrl(id, hrefs.get(id)), email.id()));
+                    provider(), id, title, d.company(), d.location(), canonicalUrl(id, hrefs.get(id)), email.id()));
         }
         return jobs;
     }
@@ -83,6 +100,15 @@ abstract class CardAlertParser implements AlertParser {
     private String jobId(Element a) {
         Matcher m = jobIdPattern().matcher(a.attr("href"));
         return m.find() ? m.group(1) : null;
+    }
+
+    private boolean containsJobLink(Element a) {
+        for (Element inner : a.select("a[href]")) {
+            if (inner != a && jobId(inner) != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isTitleCandidate(String text) {
@@ -111,36 +137,36 @@ abstract class CardAlertParser implements AlertParser {
         return true;
     }
 
-    /** Non-blank text fragments that come after the title link inside the card, split on " · ". */
-    private static List<String> textsAfter(Element card, Element titleLink) {
-        List<String> after = new ArrayList<>();
-        boolean[] pastTitle = {false};
+    /** Non-blank text fragments of the card outside the title link, split on " · ". */
+    private static void fragments(Element card, Element titleLink, List<String> before, List<String> after) {
+        int[] state = {0}; // 0 = before title, 1 = inside, 2 = after
         NodeTraversor.traverse(new NodeVisitor() {
             @Override
             public void head(Node node, int depth) {
-                if (pastTitle[0] && node instanceof TextNode t && !t.isBlank()) {
-                    after.add(t.text().strip());
+                if (node == titleLink) {
+                    state[0] = 1;
+                } else if (state[0] != 1 && node instanceof TextNode t && !t.isBlank()) {
+                    split(t.text().strip(), state[0] == 0 ? before : after);
                 }
             }
 
             @Override
             public void tail(Node node, int depth) {
                 if (node == titleLink) {
-                    pastTitle[0] = true;
+                    state[0] = 2;
                 }
             }
         }, card);
-        List<String> parts = new ArrayList<>();
-        for (String t : after) {
-            if (CALLS_TO_ACTION.contains(t.toLowerCase())) {
-                continue;
-            }
-            for (String p : SEPARATOR.split(t)) {
-                if (!p.isBlank()) {
-                    parts.add(p.strip());
-                }
+    }
+
+    private static void split(String text, List<String> into) {
+        if (CALLS_TO_ACTION.contains(text.toLowerCase())) {
+            return;
+        }
+        for (String p : SEPARATOR.split(text)) {
+            if (!p.isBlank()) {
+                into.add(p.strip());
             }
         }
-        return parts;
     }
 }

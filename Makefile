@@ -1,9 +1,9 @@
-COMPOSE := docker compose -f infra/docker-compose.yml
+COMPOSE := docker compose -f infra/docker-compose.yml $(if $(wildcard .env),--env-file .env)
 TEMPORAL := $(COMPOSE) exec -T temporal-admin-tools temporal
 VENV := agents/.venv
 PY := $(VENV)/bin/python
 
-.PHONY: help up down clean logs ps smoke gmail-auth discover jobs test test-java test-python lint venv
+.PHONY: help up down clean logs ps smoke gmail-auth gmail-dump discover discover-resync jobs test test-java test-python lint venv
 
 help:
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -41,9 +41,16 @@ gmail-auth: ## One-time: authorize read-only Gmail access (opens a browser)
 	@mkdir -p data
 	./gradlew -q :orchestrator:gmailAuth
 
+gmail-dump: ## Dev: save raw alert emails to data/alert-samples (Q='gmail query' N=10)
+	./gradlew -q :orchestrator:gmailDump -Pq="$(Q)" -Pn="$(or $(N),10)"
+
 discover: ## Run one job-discovery pass now
 	$(TEMPORAL) workflow execute --type JobDiscoveryWorkflow --task-queue orchestrator-tq \
 	  --workflow-id job-discovery-manual-$$(date +%s) --execution-timeout 10m -o json
+
+discover-resync: ## Forget the Gmail checkpoint and re-read the lookback window (after parser fixes)
+	$(COMPOSE) exec -T postgres psql -U applyops -d applyops -c "DELETE FROM gmail_checkpoint;"
+	$(MAKE) discover
 
 jobs: ## Show the latest discovered jobs
 	$(COMPOSE) exec -T postgres psql -U applyops -d applyops -c \

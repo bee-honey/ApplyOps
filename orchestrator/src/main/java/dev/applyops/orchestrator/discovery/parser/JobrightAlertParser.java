@@ -6,10 +6,14 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/** Jobright.ai recommendation emails. Links look like jobright.ai/jobs/info/{id}?utm_... */
+/**
+ * Jobright.ai recommendation emails. Links look like jobright.ai/jobs/info/{id}?utm_... Cards read
+ * "Company / Industry · Stage / 86% / Title / [Salary] / Location / referrals · posted ago".
+ */
 @Component
 public class JobrightAlertParser extends CardAlertParser {
 
+    private static final Pattern SALARY = Pattern.compile("^\\$|/(?:yr|hr)\\b");
     private static final Pattern JOB_ID = Pattern.compile("jobright\\.ai/jobs/info/([A-Za-z0-9]+)");
     private final List<String> senders;
 
@@ -35,6 +39,12 @@ public class JobrightAlertParser extends CardAlertParser {
     @Override
     protected Pattern jobIdPattern() {
         return JOB_ID;
+    }
+
+    @Override
+    protected Details details(List<String> before, List<String> after) {
+        String location = after.stream().filter(f -> !SALARY.matcher(f).find()).findFirst().orElse(null);
+        return new Details(at(before, 0), location);
     }
 
     @Override

@@ -67,8 +67,8 @@ class DiscoveryActivitiesImplTest {
     @BeforeEach
     void setUp() throws Exception {
         gmail = new FakeGmail();
-        gmail.messages.put("li", new AlertEmail("li", "jobalerts-noreply@linkedin.com", "alert", 0, Fixtures.email("linkedin-alert.synthetic.html")));
-        gmail.messages.put("jr", new AlertEmail("jr", "noreply@jobright.ai", "matches", 0, Fixtures.email("jobright-alert.synthetic.html")));
+        gmail.messages.put("li", new AlertEmail("li", "jobalerts-noreply@linkedin.com", "alert", 0, Fixtures.email("linkedin-alert.html")));
+        gmail.messages.put("jr", new AlertEmail("jr", "noreply@jobright.ai", "matches", 0, Fixtures.email("jobright-alert.html")));
         gmail.messages.put("spam", new AlertEmail("spam", "friend@example.com", "hi", 0, "<p>hi</p>"));
         gmail.messages.put("broken", new AlertEmail("broken", "noreply@jobright.ai", "?", 0, null));
 
@@ -92,7 +92,7 @@ class DiscoveryActivitiesImplTest {
         assertThat(batch.fullSync()).isTrue();
         assertThat(batch.newHistoryId()).isEqualTo("500");
         assertThat(batch.messagesScanned()).isEqualTo(2);
-        assertThat(batch.jobs()).hasSize(4);
+        assertThat(batch.jobs()).hasSize(12);
         assertThat(gmail.calls.get(0)).isEqualTo("currentHistoryId");
         assertThat(gmail.calls.get(1)).isEqualTo(
                 "search:from:(jobalerts-noreply@linkedin.com OR jobright.ai) newer_than:14d");
@@ -121,7 +121,7 @@ class DiscoveryActivitiesImplTest {
 
         assertThat(batch.fullSync()).isTrue();
         assertThat(batch.newHistoryId()).isEqualTo("500");
-        assertThat(batch.jobs()).hasSize(2);
+        assertThat(batch.jobs()).hasSize(6);
     }
 
     @Test
@@ -131,7 +131,7 @@ class DiscoveryActivitiesImplTest {
 
         var batch = activities.fetchAlerts();
 
-        assertThat(batch.jobs()).hasSize(2);
+        assertThat(batch.jobs()).hasSize(6);
     }
 
     @Test

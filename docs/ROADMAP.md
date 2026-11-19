@@ -34,12 +34,12 @@ Each milestone delivers something demoable that you can use yourself. Milestones
 **Tasks**
 - [x] Gmail OAuth CLI (`make gmail-auth`, read-only scope), token stored in gitignored `data/`
 - [x] `fetchAlerts` with `historyId` checkpointing + full-sync fallback
-- [x] `LinkedInAlertParser`, `JobrightAlertParser` + fixture tests (synthetic for now)
-- [ ] Replace synthetic fixtures with real, PII-scrubbed alert emails and tune parsers
+- [x] `LinkedInAlertParser`, `JobrightAlertParser` + fixture tests
+- [x] Replace synthetic fixtures with real, PII-scrubbed alert emails and tune parsers (`make gmail-dump` + `tools/scrub_alert_email.py`)
 - [x] Link resolver: follow redirects hop by hop (never linkedin.com), detect ATS type/key
 - [x] `job`, `job_source`, `application`, `gmail_checkpoint` tables + idempotent upsert (fingerprint / ATS key)
 - [x] `JobDiscoveryWorkflow` + `job-discovery` Schedule; starts `ApplicationWorkflow` stub (outbox-style, crash-safe)
-- [ ] Run against the real mailbox and meet the acceptance criteria
+- [x] Run against the real mailbox and meet the acceptance criteria (2026-11-19: 100 emails → 604 sightings → 317 jobs; second run +0; 4 jobs merged across LinkedIn and Jobright; 317 workflows for 317 jobs)
 
 **Acceptance**
 - 100 real jobs discovered; running the poll twice adds 0 new rows

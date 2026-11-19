@@ -52,6 +52,15 @@ tasks.register<JavaExec>("gmailAuth") {
     standardInput = System.`in`
 }
 
+tasks.register<JavaExec>("gmailDump") {
+    group = "applyops"
+    description = "Dev: save raw alert emails under data/alert-samples (args: query, max)"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("dev.applyops.orchestrator.discovery.gmail.GmailDumpCli")
+    workingDir = rootProject.projectDir
+    args = listOf(providers.gradleProperty("q").getOrElse(""), providers.gradleProperty("n").getOrElse("10"))
+}
+
 // Only produce the executable boot jar (keeps the Docker COPY unambiguous).
 tasks.named<Jar>("jar") { enabled = false }
 tasks.withType<JavaCompile> { options.compilerArgs.add("-Xlint:deprecation") }
