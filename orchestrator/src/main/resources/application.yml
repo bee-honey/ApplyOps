@@ -16,3 +16,20 @@ spring:
     workers-auto-discovery:
       packages:
         - dev.applyops.orchestrator
+
+applyops:
+  gmail:
+    credentials-file: ${GMAIL_CREDENTIALS_FILE:data/gmail-credentials.json}
+    token-dir: ${GMAIL_TOKEN_DIR:data/gmail-token}
+  discovery:
+    # Keep off until `make gmail-auth` has been run.
+    schedule-enabled: ${DISCOVERY_SCHEDULE_ENABLED:false}
+    interval: ${DISCOVERY_INTERVAL:15m}
+    initial-lookback-days: 14
+    max-initial-messages: 100
+    linkedin-senders:
+      - jobalerts-noreply@linkedin.com
+      - jobs-noreply@linkedin.com
+      - jobs-listings@linkedin.com
+    jobright-senders:
+      - jobright.ai

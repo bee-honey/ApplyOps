@@ -32,12 +32,14 @@ Each milestone delivers something demoable that you can use yourself. Milestones
 
 ## M1 — Job discovery
 **Tasks**
-- Gmail OAuth setup script (read-only scope), token stored locally
-- `fetchNewAlertEmails` with `historyId` checkpointing + full-sync fallback
-- `LinkedInAlertParser`, `JobrightAlertParser` with fixture-based tests (saved real emails, PII removed)
-- Link resolver: follow redirects to the final ATS URL; detect `ats_type`; compute `canonical_key`
-- `job`, `job_source` tables + upsert
-- `JobDiscoveryWorkflow` on a Temporal Schedule; starts `ApplicationWorkflow` stub for new jobs
+- [x] Gmail OAuth CLI (`make gmail-auth`, read-only scope), token stored in gitignored `data/`
+- [x] `fetchAlerts` with `historyId` checkpointing + full-sync fallback
+- [x] `LinkedInAlertParser`, `JobrightAlertParser` + fixture tests (synthetic for now)
+- [ ] Replace synthetic fixtures with real, PII-scrubbed alert emails and tune parsers
+- [x] Link resolver: follow redirects hop by hop (never linkedin.com), detect ATS type/key
+- [x] `job`, `job_source`, `application`, `gmail_checkpoint` tables + idempotent upsert (fingerprint / ATS key)
+- [x] `JobDiscoveryWorkflow` + `job-discovery` Schedule; starts `ApplicationWorkflow` stub (outbox-style, crash-safe)
+- [ ] Run against the real mailbox and meet the acceptance criteria
 
 **Acceptance**
 - 100 real jobs discovered; running the poll twice adds 0 new rows

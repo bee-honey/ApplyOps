@@ -3,7 +3,7 @@ TEMPORAL := $(COMPOSE) exec -T temporal-admin-tools temporal
 VENV := agents/.venv
 PY := $(VENV)/bin/python
 
-.PHONY: help up down clean logs ps smoke test test-java test-python lint venv
+.PHONY: help up down clean logs ps smoke gmail-auth discover jobs test test-java test-python lint venv
 
 help:
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -36,6 +36,19 @@ smoke: ## Run HelloWorkflow (Java) -> echo activity (Python) end to end
 	    --input '"ApplyOps"' -o json); \
 	  echo "$$out"; \
 	  echo "$$out" | grep -q '"language": *"python"' && echo "SMOKE OK" || { echo "SMOKE FAILED"; exit 1; }
+
+gmail-auth: ## One-time: authorize read-only Gmail access (opens a browser)
+	@mkdir -p data
+	./gradlew -q :orchestrator:gmailAuth
+
+discover: ## Run one job-discovery pass now
+	$(TEMPORAL) workflow execute --type JobDiscoveryWorkflow --task-queue orchestrator-tq \
+	  --workflow-id job-discovery-manual-$$(date +%s) --execution-timeout 10m -o json
+
+jobs: ## Show the latest discovered jobs
+	$(COMPOSE) exec -T postgres psql -U applyops -d applyops -c \
+	  "SELECT j.company, j.title, j.location, j.ats_type, string_agg(s.provider, ',') AS sources \
+	   FROM job j JOIN job_source s ON s.job_id = j.id GROUP BY j.id ORDER BY j.first_seen_at DESC LIMIT 30;"
 
 test: test-java test-python ## Run all unit tests
 

@@ -70,10 +70,12 @@ Run by a Temporal Schedule every N minutes (default 15).
 
 1. `fetchNewAlertEmails(lastHistoryId)` → list of messages since the last checkpoint (Gmail `users.history.list`; full re-sync fallback if `historyId` has expired).
 2. For each message: `parseAlert(message)` → job links (provider-specific parsers: `LinkedInAlertParser`, `JobrightAlertParser`).
-3. `resolveAndNormalize(link)` → `{atsType, atsUrl, canonicalKey}`.
-4. `upsertJob(...)` — `INSERT ... ON CONFLICT (canonical_key) DO NOTHING`; adds a `job_source` row either way.
-5. For **newly inserted** jobs only: start `ApplicationWorkflow` with `workflowId = "app-" + canonicalKey` and `WorkflowIdReusePolicy = REJECT_DUPLICATE`. Starting the same job again is a no-op. This is the first layer of dedup.
-6. Save the new `historyId` checkpoint.
+3. `upsertJobs(jobs)`: for each job, follow tracking redirects hop by hop (never requesting linkedin.com, per ADR-0003) and recognize ATS URLs. Then upsert, matching in this order: same provider job id → same ATS posting (`ats_key`) → same `fingerprint` (normalized company + title). The `application` row is created **in the same transaction** as the job.
+4. The activity returns every application with `workflow_started_at IS NULL`, not only this batch's. That column works like an outbox, so a run that crashed after inserting jobs but before starting their workflows is picked up by the next run.
+5. Start a child `ApplicationWorkflow` per pending application: `workflowId = "app-" + jobId`, `REJECT_DUPLICATE`, `ParentClosePolicy = ABANDON`. "Already started" counts as success.
+6. `markWorkflowsStarted(ids)`, then save the new `historyId` checkpoint, **last**. Crashing anywhere before this means re-reading the same emails, which the DB constraints deduplicate. It never means skipping an email.
+
+Implemented in `orchestrator/…/discovery/` (M1). The run is triggered by the `job-discovery` Temporal Schedule (overlap policy SKIP), enabled with `DISCOVERY_SCHEDULE_ENABLED=true`, or manually with `make discover`.
 
 ### 3.2 `ApplicationWorkflow` (one per canonical job)
 
@@ -145,7 +147,8 @@ Future (post-MVP): `SUBMITTED → RECRUITER_REPLIED → INTERVIEWING → OFFER |
 ```sql
 job (
   id               uuid pk,
-  canonical_key    text unique not null,   -- e.g. "greenhouse:acme:4012345"
+  fingerprint      text unique not null,   -- sha256(normalized company | normalized title)
+  ats_key          text unique,            -- e.g. "greenhouse:acme:4012345", once resolved
   ats_type         text,                   -- greenhouse | lever | ashby | workday | unknown
   ats_url          text,
   company          text, title text, location text,
@@ -253,7 +256,8 @@ fillForm(job, docs, answers):
 
 | Risk | Mitigation |
 |---|---|
-| Same job from LinkedIn and Jobright | Resolve to the final ATS URL → `canonical_key`; `job.canonical_key UNIQUE`; workflowId = `app-<canonicalKey>` with REJECT_DUPLICATE |
+| Same job from LinkedIn and Jobright | Match by provider id → `ats_key` → `fingerprint` (normalized company + title; location is left out because providers format it differently). One `application` per job (`job_id UNIQUE`); workflowId = `app-<jobId>` with REJECT_DUPLICATE |
+| Crash between inserting jobs and starting their workflows | `application.workflow_started_at IS NULL` works like an outbox; every discovery run starts all pending workflows |
 | Gmail poll re-reads messages | `historyId` checkpoint + `job_source(provider, external_id)` unique |
 | Worker crash mid-workflow | Temporal replays history; completed steps aren't re-run; the browser fill step is idempotent and re-runs from scratch |
 | **Crash or timeout during submit** | Submit step has `maximumAttempts = 1`. On failure or timeout → `SUBMISSION_UNCERTAIN` → `checkSubmissionStatus` (look for the confirmation page in a new session, or a confirmation email in Gmail) → only re-ask for submit approval if there's no evidence. **Never retry the submit blindly.** |

@@ -4,7 +4,7 @@
 
 ApplyOps is an agentic job-application platform with a human in the loop. It finds jobs in your email alerts, tailors your résumé to each job description using only facts from your verified career profile, asks you to approve over Telegram, fills in the application form with a browser agent, and sends any question it can't answer back to you. Every application runs as its own durable Temporal workflow, so the system can wait days for your reply, survive crashes, and never submit the same application twice.
 
-> **Status: M0 (foundations) in progress.** Polyglot Temporal skeleton runs end to end. See [Design](docs/DESIGN.md), [Roadmap](docs/ROADMAP.md) and the [ADRs](docs/adr/).
+> **Status: M1 (job discovery) in progress.** Gmail → parse → dedup → one workflow per job is built and tested; waiting on real mailbox validation. See [Design](docs/DESIGN.md), [Roadmap](docs/ROADMAP.md) and the [ADRs](docs/adr/).
 
 ## Quick start
 
@@ -13,6 +13,8 @@ Requires Docker, Java 21 and Python 3.12+.
 ```bash
 make up       # Postgres, Temporal, Temporal UI, Java orchestrator, Python agents worker
 make smoke    # HelloWorkflow (Java) -> echo activity (Python) -> result
+make gmail-auth  # one-time: read-only Gmail consent (needs data/gmail-credentials.json)
+make discover    # run one job-discovery pass; make jobs shows results
 make test     # Java + Python unit and schema-contract tests
 make down     # stop (make clean also deletes volumes)
 ```

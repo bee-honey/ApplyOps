@@ -60,6 +60,12 @@ services:
       DB_NAME: applyops
       DB_USER: applyops
       DB_PASSWORD: applyops
+      GMAIL_CREDENTIALS_FILE: /app/data/gmail-credentials.json
+      GMAIL_TOKEN_DIR: /app/data/gmail-token
+      DISCOVERY_SCHEDULE_ENABLED: ${DISCOVERY_SCHEDULE_ENABLED:-false}
+      DISCOVERY_INTERVAL: ${DISCOVERY_INTERVAL:-15m}
+    volumes:
+      - ../data:/app/data
     depends_on:
       postgres:
         condition: service_healthy

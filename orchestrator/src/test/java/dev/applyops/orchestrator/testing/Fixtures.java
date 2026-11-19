@@ -1,0 +1,21 @@
+package dev.applyops.orchestrator.testing;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+
+public final class Fixtures {
+    private Fixtures() {}
+
+    /** Loads src/test/resources/fixtures/email/{name}. */
+    public static String email(String name) {
+        try (var in = Fixtures.class.getResourceAsStream("/fixtures/email/" + name)) {
+            if (in == null) {
+                throw new IllegalArgumentException("No fixture " + name);
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+}
